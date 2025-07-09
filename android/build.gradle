@@ -3,36 +3,35 @@ buildscript {
 	ext.readPropertyWithDefault = { paramName, defaultValue ->
 		if (project.hasProperty(paramName)) {
 			return project.getProperties().get(paramName)
-		} else {
+			} else {
 			Properties properties = new Properties()
 			if (project.rootProject.file('local.properties').exists()) {
 				properties.load(project.rootProject.file('local.properties').newDataInputStream())
-			}
+				}
 			if (properties.getProperty(paramName) != null) {
 				return properties.getProperty(paramName)
-			} else {
+				} else {
 				return defaultValue
+				}
 			}
 		}
-	}
 
 	ext{
 		agp_version = "8.8.1"
 		kotlin_version = "2.1.10"
 		ksp_version = "2.1.10-1.0.31"
-	}
+		}
 	repositories {
 		google()
 		mavenCentral()
-	}
+		}
 	dependencies {
 		classpath "com.android.tools.build:gradle:$agp_version"
 		classpath "com.google.devtools.ksp:com.google.devtools.ksp.gradle.plugin:$ksp_version"
 		classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
 
-		classpath 'com.vanniktech:gradle-maven-publish-plugin:0.30.0'
-		classpath 'org.jetbrains.dokka:dokka-gradle-plugin:1.9.10'
-	}
+		classpath 'com.github.dcendents:android-maven-gradle-plugin:2.1'
+		}
 }
 
 repositories {
@@ -42,11 +41,11 @@ repositories {
 
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
-apply plugin: 'com.vanniktech.maven.publish'
+apply plugin: 'com.github.dcendents.android-maven'
 apply plugin: 'com.google.devtools.ksp'
 apply plugin: 'kotlin-parcelize'
 
-import com.vanniktech.maven.publish.SonatypeHost
+group = 'com.github.openmobilemaps'
 
 android {
 	namespace 'io.openmobilemaps.mapscore'
@@ -65,60 +64,60 @@ android {
 			cmake {
 				arguments "-DANDROID_STL=c++_shared"
 				cppFlags "-std=c++17 -frtti -fexceptions -O2"
+				}
 			}
 		}
-	}
 
 	externalNativeBuild {
 		cmake {
 			path "CMakeLists.txt"
+			}
 		}
-	}
 
 	sourceSets {
 		main {
 			java {
 				srcDir 'src/main/java'
 				srcDir '../bridging/android/java'
+				}
 			}
 		}
-	}
 
 	compileOptions {
 		sourceCompatibility JavaVersion.VERSION_11
 		targetCompatibility JavaVersion.VERSION_11
-	}
+		}
 
 	buildFeatures {
 		prefabPublishing true
-	}
+		}
 
 	prefab {
 		mapscore {
 			headers ".cpp_includes"
 			name "mapscore"
+			}
 		}
-	}
 
 	buildTypes {
 		debug {
 			externalNativeBuild {
 				cmake {
 					cppFlags "-DDEBUG"
+					}
 				}
 			}
-		}
 		release {
 			externalNativeBuild {
 				cmake {
 					cppFlags "-DNDEBUG"
+					}
 				}
-			}
 			ndk {
 				debugSymbolLevel 'SYMBOL_TABLE'
+				}
 			}
 		}
-	}
 
 	// Latest LTS version (as of June 2025)
 	ndkVersion "27.2.12479018"
@@ -142,7 +141,7 @@ task copyHeaders() {
 		from collection.asFileTree.getFiles()
 		include("**/*.h")
 		into project.file(headersDir)
-	}
+		}
 }
 preBuild.dependsOn copyHeaders
 
@@ -150,42 +149,36 @@ preBuild.dependsOn copyHeaders
 afterEvaluate {
 	tasks.named("bundleReleaseLocalLintAar").configure {
 		dependsOn("prefabReleaseConfigurePackage")
-	}
+		}
 }
 
 ext.readProperty = { paramName -> readPropertyWithDefault(paramName, null) }
 ext.readPropertyWithDefault = { paramName, defaultValue ->
 	if (project.hasProperty(paramName)) {
 		return project.getProperties().get(paramName)
-	} else {
+		} else {
 		Properties properties = new Properties()
 		if (project.rootProject.file('local.properties').exists()) {
 			properties.load(project.rootProject.file('local.properties').newDataInputStream())
-		}
+			}
 		if (properties.getProperty(paramName) != null) {
 			return properties.getProperty(paramName)
-		} else {
+			} else {
 			return defaultValue
-		}
-	}
-}
-
-publishing {
-	repositories {
-		maven {
-			name = "UbiqueMaven"
-			url = System.getenv('UB_ARTIFACTORY_URL_ANDROID') ?: readPropertyWithDefault('ubiqueMavenUrl', '')
-			credentials {
-				username = System.getenv('UB_ARTIFACTORY_USER') ?: readPropertyWithDefault('ubiqueMavenUser', '')
-				password = System.getenv('UB_ARTIFACTORY_PASSWORD') ?: readPropertyWithDefault('ubiqueMavenPass', '')
 			}
 		}
-	}
 }
 
-mavenPublishing {
-	publishToMavenCentral(SonatypeHost.DEFAULT, true)
-	signAllPublications()
+// JitPack configuration
+archivesBaseName = 'mapscore'
+
+task androidSourcesJar(type: Jar) {
+	classifier = 'sources'
+	from android.sourceSets.main.java.srcDirs
+}
+
+artifacts {
+	archives androidSourcesJar
 }
 
 dependencies {
