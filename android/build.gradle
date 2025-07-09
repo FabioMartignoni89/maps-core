@@ -30,7 +30,8 @@ buildscript {
 		classpath "com.google.devtools.ksp:com.google.devtools.ksp.gradle.plugin:$ksp_version"
 		classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
 
-		classpath 'com.github.dcendents:android-maven-gradle-plugin:2.1'
+		classpath 'com.vanniktech:gradle-maven-publish-plugin:0.30.0'
+		classpath 'org.jetbrains.dokka:dokka-gradle-plugin:1.9.10'
 		}
 }
 
@@ -41,11 +42,9 @@ repositories {
 
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
-apply plugin: 'com.github.dcendents.android-maven'
+apply plugin: 'maven-publish'
 apply plugin: 'com.google.devtools.ksp'
 apply plugin: 'kotlin-parcelize'
-
-group = 'com.github.openmobilemaps'
 
 android {
 	namespace 'io.openmobilemaps.mapscore'
@@ -169,16 +168,18 @@ ext.readPropertyWithDefault = { paramName, defaultValue ->
 		}
 }
 
-// JitPack configuration
-archivesBaseName = 'mapscore'
+publishing {
+	publications {
+		release(MavenPublication) {
+			groupId = 'io.jitpack'
+			artifactId = 'core-library'
+			version = '3.3.6'
 
-task androidSourcesJar(type: Jar) {
-	classifier = 'sources'
-	from android.sourceSets.main.java.srcDirs
-}
-
-artifacts {
-	archives androidSourcesJar
+			afterEvaluate {
+				from components.release
+				}
+			}
+		}
 }
 
 dependencies {
